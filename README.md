@@ -4,6 +4,7 @@
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 一个面向微信公众号创作者的开源 Markdown 排版工具。直接在浏览器中编写 Markdown、选择排版主题并实时预览，完成后可将带有内联样式的富文本复制到微信公众号编辑器。
 
@@ -106,6 +107,8 @@ yarn preview
 
 项目维护者会审核 Pull Request、提出必要的修改建议，并在确认代码质量和项目方向一致后合并。参与贡献即表示你愿意以开放、友善和尊重的方式与社区协作。
 
+每个指向 `main` 的 Pull Request 都会自动运行依赖安装和生产构建检查。请确保 **PR build** 通过后再请求合并。
+
 ### 当前适合贡献的方向
 
 - 新增高质量的公众号排版主题
@@ -113,6 +116,30 @@ yarn preview
 - 改进图片、表格和代码块的处理体验
 - 增加自动化测试与无障碍支持
 - 完善文档、示例和国际化支持
+
+### 维护者合并流程
+
+贡献者提交指向 `main` 的 Pull Request 后，[PR checks](./.github/workflows/pr-checks.yml) 会自动检出代码、安装锁定依赖并执行 `yarn build`。维护者不需要手动触发构建，但仍需审核代码逻辑和实际功能；绿色的 **PR build** 只表示类型检查与生产构建成功，不代表功能一定正确。
+
+推荐按以下顺序处理 Pull Request：
+
+1. 查看修改内容、提交说明和界面截图。
+2. 等待 **PR build** 完成；首次贡献者的工作流可能需要维护者点击 **Approve and run workflows**。
+3. 对重要功能进行本地验证，确认没有安全风险或明显回归。
+4. 如需调整，使用评论或 **Request changes** 反馈。
+5. 代码审核通过且 **PR build** 为绿色后，合并到 `main`。
+6. 合并会触发 GitHub Pages 工作流，部署完成后检查线上页面。
+
+为了避免误合并构建失败的代码，可以在第一个 Pull Request 成功运行 **PR build** 后，为 `main` 配置一次仓库 Ruleset：
+
+1. 进入 **Settings → Rules → Rulesets → New branch ruleset**。
+2. 将 **Enforcement status** 设置为 **Active**。
+3. 在 **Target branches** 中选择 **Default branch**。
+4. 开启 **Require a pull request before merging**。
+5. 开启 **Require status checks to pass**，添加状态检查 **PR build**。
+6. 开启 **Require conversation resolution before merging**。
+
+配置后，只要 **PR build** 未完成或执行失败，GitHub 就会阻止该 Pull Request 合并。Ruleset 只需配置一次，之后会自动应用到所有指向 `main` 的 Pull Request。
 
 ## GitHub Pages 部署
 
@@ -122,7 +149,7 @@ yarn preview
 
 ## 许可证
 
-仓库目前尚未添加开源许可证。在 `LICENSE` 文件正式发布前，代码的复制、修改和再分发权限仍由项目作者保留。贡献代码前，请关注后续的许可证说明。
+本项目基于 [MIT License](./LICENSE) 开源。你可以自由使用、复制、修改、合并、发布和分发本项目，但需要保留原始版权声明和许可证文本。
 
 ## 维护者
 
