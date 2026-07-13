@@ -24,6 +24,16 @@ npm run preview
 
 构建产物位于 `dist/`，可以交给任意静态文件服务器运行。
 
+## GitHub Pages 自动部署
+
+仓库包含 `.github/workflows/deploy-pages.yml`。每次代码推送到 `main` 分支时，GitHub Actions 会自动安装依赖、构建项目并把 `dist/` 发布到 GitHub Pages。
+
+首次使用时，需要在 GitHub 仓库中打开 **Settings → Pages**，将 **Build and deployment → Source** 设置为 **GitHub Actions**。部署完成后可访问：
+
+<https://macrohoo.github.io/wechat-markdown-editor/>
+
+也可以在仓库的 **Actions** 页面手动运行该 workflow。
+
 ## 项目结构
 
 ```text
