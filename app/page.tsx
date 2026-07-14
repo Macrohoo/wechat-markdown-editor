@@ -1,31 +1,7 @@
 import { marked } from "marked";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-const SAMPLE_MARKDOWN = `# 把复杂的事，说清楚
-
-真正好的内容，不需要堆砌术语。它应该让读者在三分钟内明白：**发生了什么、为什么重要，以及下一步做什么。**
-
-> 写作不是把知道的都写下来，而是替读者安排好理解的顺序。
-
-## 一个简单的方法
-
-1. 先给结论，不让读者猜。
-2. 再给证据，说明判断从哪里来。
-3. 最后给行动，让文章产生结果。
-
-### 写作检查清单
-
-- 每一段只表达一个意思
-- 标题能够独立传达信息
-- 删除没有提供新信息的句子
-
-\`\`\`js
-const clearWriting = idea => explain(idea, { simple: true })
-\`\`\`
-
----
-
-愿每一次表达，都能抵达真正需要它的人。`;
+import { BOTTOM_HTML_TEMPLATES, TOP_HTML_TEMPLATES, type HtmlTemplate } from "./html-templates";
+import { SAMPLE_MARKDOWN } from "./sample-markdown";
 
 type ThemeName = "clean" | "editorial" | "tech" | "lime";
 
@@ -128,8 +104,7 @@ const THEMES: Record<ThemeName, { label: string; color: string; css: string }> =
       #wechat-content .lime-body h3 { margin:26px 0 13px; padding:7px 12px; border-left:4px solid #C2F54A; background:linear-gradient(90deg,#f0ffd0 0%,rgba(240,255,208,0) 88%); color:#252c20; font-size:17px; line-height:1.55; font-weight:650; letter-spacing:.04em; }
       #wechat-content .lime-body p { margin:13px 0; text-align:justify; }
       #wechat-content .lime-body strong { padding:0 2px; background:linear-gradient(transparent 62%, #C2F54A 62%); color:#080808; font-weight:750; }
-      #wechat-content .lime-body blockquote { margin:28px 0 20px; padding:36px 18px 17px; position:relative; border:1px dashed #C2F54A; background:#f8ffe9; color:#66705d; font-size:14px; line-height:1.8; }
-      #wechat-content .lime-body blockquote:before { content:"★"; position:absolute; top:-1px; left:-1px; padding:5px 12px; background:#C2F54A; color:#111111; font-size:15px; line-height:1.4; font-style:normal; font-weight:750; }
+      #wechat-content .lime-body blockquote { margin:26px 0 22px; padding:16px 18px 16px 20px; border:0; border-left:5px solid #C2F54A; border-radius:0 9px 9px 0; background:linear-gradient(90deg,#f2ffd6 0%,#fbfff4 100%); box-shadow:inset 0 0 0 1px #e5f0ce; color:#5f6958; font-size:14px; line-height:1.85; }
       #wechat-content .lime-body blockquote p { margin:0; }
       #wechat-content .lime-body ul, #wechat-content .lime-body ol { margin:15px 0; padding-left:27px; }
       #wechat-content .lime-body ul { list-style-type:disc; }
@@ -149,8 +124,29 @@ const THEMES: Record<ThemeName, { label: string; color: string; css: string }> =
 
 marked.setOptions({ gfm: true, breaks: true });
 
-async function renderMarkdown(markdown: string) {
-  return sanitizeHtmlFragment(marked.parse(markdown) as string);
+async function renderMarkdown(markdown: string, includeSourceMap = false) {
+  if (!includeSourceMap) {
+    return sanitizeHtmlFragment(marked.parse(markdown) as string);
+  }
+
+  let sourceOffset = 0;
+  const mappedHtml = marked.lexer(markdown).map((token) => {
+    const start = sourceOffset;
+    sourceOffset += token.raw.length;
+    const renderedToken = marked.parser([token]);
+    if (!renderedToken.trim()) return "";
+
+    // These markers exist only in the preview. Copied WeChat HTML uses the
+    // regular render path so source-location metadata never reaches the clipboard.
+    const document = new DOMParser().parseFromString(renderedToken, "text/html");
+    [...document.body.children].forEach((element) => {
+      element.setAttribute("data-markdown-source-start", String(start));
+      element.setAttribute("data-markdown-source-end", String(sourceOffset));
+    });
+    return document.body.innerHTML;
+  }).join("");
+
+  return sanitizeHtmlFragment(mappedHtml);
 }
 
 async function sanitizeHtmlFragment(html: string) {
@@ -231,10 +227,16 @@ function removeUnsafeWechatAttributes(root: HTMLElement) {
   root.querySelectorAll('a[href^="#"]').forEach((link) => link.removeAttribute("href"));
 }
 
-async function composeContent(markdown: string, topHtml: string, bottomHtml: string, theme: ThemeName) {
+async function composeContent(
+  markdown: string,
+  topHtml: string,
+  bottomHtml: string,
+  theme: ThemeName,
+  includeSourceMap = false,
+) {
   const [safeTopHtml, markdownHtml, safeBottomHtml] = await Promise.all([
     renderHtmlFragment(topHtml),
-    renderMarkdown(markdown),
+    renderMarkdown(markdown, includeSourceMap),
     renderHtmlFragment(bottomHtml),
   ]);
   const decoratedHtml = decorateThemeHtml(markdownHtml, theme);
@@ -304,6 +306,48 @@ function fallbackRichCopy(html: string, plainText: string) {
   return succeeded && wroteRichHtml;
 }
 
+function getTextareaSourceOffsetTop(textarea: HTMLTextAreaElement, value: string, offset: number) {
+  // Mirror the textarea's wrapping rules to locate a source offset in pixels.
+  // Counting lines alone drifts when long Markdown lines wrap visually.
+  const computed = window.getComputedStyle(textarea);
+  const mirror = document.createElement("div");
+  Object.assign(mirror.style, {
+    position: "fixed",
+    top: "0",
+    left: "-9999px",
+    visibility: "hidden",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+    width: `${textarea.clientWidth}px`,
+    minHeight: "0",
+    padding: computed.padding,
+    border: "0",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "break-word",
+    wordBreak: computed.wordBreak,
+    tabSize: computed.tabSize,
+    fontFamily: computed.fontFamily,
+    fontSize: computed.fontSize,
+    fontStyle: computed.fontStyle,
+    fontWeight: computed.fontWeight,
+    letterSpacing: computed.letterSpacing,
+    lineHeight: computed.lineHeight,
+  });
+
+  mirror.append(document.createTextNode(value.slice(0, offset)));
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b";
+  mirror.append(marker);
+  document.body.append(mirror);
+  const markerCenter = marker.offsetTop + marker.offsetHeight / 2;
+  mirror.remove();
+  return markerCenter;
+}
+
+function appendHtmlTemplate(currentHtml: string, template: HtmlTemplate) {
+  return currentHtml.trim() ? `${currentHtml.trimEnd()}\n\n${template.html}` : template.html;
+}
+
 export default function Home() {
   const [markdown, setMarkdown] = useState(SAMPLE_MARKDOWN);
   const [topHtml, setTopHtml] = useState("");
@@ -313,8 +357,20 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  const previewScrollFrameRef = useRef<number | null>(null);
 
   const characters = markdown.replace(/\s/g, "").length;
+
+  const importTopTemplate = useCallback((templateId: string) => {
+    const template = TOP_HTML_TEMPLATES.find(({ id }) => id === templateId);
+    if (template) setTopHtml((currentHtml) => appendHtmlTemplate(currentHtml, template));
+  }, []);
+
+  const importBottomTemplate = useCallback((templateId: string) => {
+    const template = BOTTOM_HTML_TEMPLATES.find(({ id }) => id === templateId);
+    if (template) setBottomHtml((currentHtml) => appendHtmlTemplate(currentHtml, template));
+  }, []);
 
   const applyMarkdown = useCallback((action: MarkdownAction) => {
     const textarea = textareaRef.current;
@@ -381,7 +437,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    composeContent(markdown, topHtml, bottomHtml, theme).then((html) => {
+    composeContent(markdown, topHtml, bottomHtml, theme, true).then((html) => {
       if (active) {
         setPreviewHtml(html);
       }
@@ -390,6 +446,59 @@ export default function Home() {
       active = false;
     };
   }, [markdown, topHtml, bottomHtml, theme]);
+
+  useEffect(() => () => {
+    if (previewScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(previewScrollFrameRef.current);
+    }
+  }, []);
+
+  const syncEditorToPreview = useCallback(() => {
+    if (previewScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(previewScrollFrameRef.current);
+    }
+
+    previewScrollFrameRef.current = window.requestAnimationFrame(() => {
+      previewScrollFrameRef.current = null;
+      const preview = previewScrollRef.current;
+      const textarea = textareaRef.current;
+      if (!preview || !textarea || !markdown) return;
+
+      const blocks = preview.querySelectorAll<HTMLElement>("[data-markdown-source-start]");
+      if (!blocks.length) return;
+
+      const previewRect = preview.getBoundingClientRect();
+      const viewportCenter = previewRect.top + preview.clientHeight / 2;
+      let closestBlock: HTMLElement | null = null;
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      blocks.forEach((block) => {
+        const rect = block.getBoundingClientRect();
+        const distance = viewportCenter < rect.top
+          ? rect.top - viewportCenter
+          : viewportCenter > rect.bottom
+            ? viewportCenter - rect.bottom
+            : 0;
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestBlock = block;
+        }
+      });
+
+      if (!closestBlock) return;
+      const block = closestBlock as HTMLElement;
+      const blockRect = block.getBoundingClientRect();
+      const start = Number(block.dataset.markdownSourceStart);
+      const end = Number(block.dataset.markdownSourceEnd);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+
+      const progress = Math.min(1, Math.max(0, (viewportCenter - blockRect.top) / Math.max(1, blockRect.height)));
+      const sourceOffset = Math.round(start + (end - start) * progress);
+      const sourceCenter = getTextareaSourceOffsetTop(textarea, markdown, sourceOffset);
+      const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+      textarea.scrollTop = Math.min(maxScrollTop, Math.max(0, sourceCenter - textarea.clientHeight / 2));
+    });
+  }, [markdown]);
 
   const copyToWechat = useCallback(async () => {
     setBusy(true);
@@ -475,7 +584,20 @@ export default function Home() {
           <article className="pane html-pane">
             <div className="html-pane-heading">
               <div><span className="eyebrow">BEFORE</span><h2>顶部 HTML</h2></div>
-              <span>展示在正文之前</span>
+              <div className="html-pane-actions">
+                <span>展示在正文之前</span>
+                <select
+                  className="template-select"
+                  value=""
+                  aria-label="导入顶部 HTML 模板"
+                  onChange={(event) => importTopTemplate(event.target.value)}
+                >
+                  <option value="" disabled>追加模板…</option>
+                  {TOP_HTML_TEMPLATES.map((template) => (
+                    <option key={template.id} value={template.id}>{template.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <textarea
               id="top-html"
@@ -520,7 +642,20 @@ export default function Home() {
           <article className="pane html-pane">
             <div className="html-pane-heading">
               <div><span className="eyebrow">AFTER</span><h2>底部 HTML</h2></div>
-              <span>展示在正文之后</span>
+              <div className="html-pane-actions">
+                <span>展示在正文之后</span>
+                <select
+                  className="template-select"
+                  value=""
+                  aria-label="导入底部 HTML 模板"
+                  onChange={(event) => importBottomTemplate(event.target.value)}
+                >
+                  <option value="" disabled>追加模板…</option>
+                  {BOTTOM_HTML_TEMPLATES.map((template) => (
+                    <option key={template.id} value={template.id}>{template.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <textarea
               id="bottom-html"
@@ -536,9 +671,9 @@ export default function Home() {
         <article className="pane preview-pane">
           <div className="pane-heading">
             <div><span className="eyebrow">PREVIEW</span><h2>公众号预览</h2></div>
-            <span className="phone-width">375 px</span>
+            <span className="phone-width">375 px · 滚动联动</span>
           </div>
-          <div className="preview-scroll">
+          <div ref={previewScrollRef} className="preview-scroll" onScroll={syncEditorToPreview}>
             <div className="phone-paper">
               <style>{THEMES[theme].css}</style>
               <section id="wechat-content" dangerouslySetInnerHTML={{ __html: previewHtml }} />

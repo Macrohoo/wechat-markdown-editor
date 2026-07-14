@@ -141,6 +141,12 @@ button { color: inherit; }
   display: flex;
   flex-direction: column;
 }
+.preview-pane {
+  position: sticky;
+  top: 18px;
+  height: clamp(580px, calc(100vh - 222px), 900px);
+  min-height: 580px;
+}
 .html-pane {
   min-height: 160px;
   display: flex;
@@ -180,6 +186,30 @@ button { color: inherit; }
 }
 .html-pane-heading h2 { margin: 0; font-size: 13px; font-weight: 680; }
 .html-pane-heading > span { color: #96a099; font-size: 11px; }
+.html-pane-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.html-pane-actions > span { color: #96a099; font-size: 11px; }
+.template-select {
+  max-width: 152px;
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #d7e1db;
+  border-radius: 8px;
+  outline: none;
+  background: #fff;
+  color: #526159;
+  font-size: 11px;
+  cursor: pointer;
+}
+.template-select:hover,
+.template-select:focus-visible {
+  border-color: #a9c4b5;
+  color: var(--green);
+}
 
 .markdown-toolbar {
   min-height: 46px;
@@ -247,9 +277,11 @@ button { color: inherit; }
 .html-pane textarea::selection { background: #cce8da; }
 
 .preview-scroll {
-  min-height: 605px;
+  min-height: 0;
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 27px;
   background:
     linear-gradient(45deg, rgba(22,115,77,.025) 25%, transparent 25%, transparent 75%, rgba(22,115,77,.025) 75%),
@@ -285,10 +317,16 @@ button { color: inherit; }
   .theme-picker { flex-wrap: wrap; }
   .stats { display: none; }
   .workspace { padding: 12px; grid-template-columns: 1fr; }
-  .editor-pane, .preview-pane { min-height: 580px; }
+  .editor-pane { min-height: 580px; }
+  .preview-pane {
+    position: static;
+    height: 70vh;
+    min-height: 520px;
+    max-height: 680px;
+  }
   .html-pane { min-height: 150px; }
   .editor-pane .markdown-input { min-height: 470px; }
-  .preview-scroll { min-height: 540px; padding: 18px 10px; }
+  .preview-scroll { min-height: 0; padding: 18px 10px; }
 }
 
 @media (max-width: 560px) {
@@ -297,6 +335,9 @@ button { color: inherit; }
   .copy-button { max-width: 180px; font-size: 12px; }
   .toolbar { display: block; }
   .toolbar-label { display: block; width: 100%; margin: 0 0 5px; }
+  .html-pane-actions > span { display: none; }
+  .template-select { max-width: 136px; }
+  .preview-pane { height: 65vh; min-height: 480px; }
   .phone-paper { padding: 28px 20px 50px; }
 }
 
