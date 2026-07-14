@@ -96,28 +96,28 @@ const THEMES: Record<ThemeName, { label: string; color: string; css: string }> =
     label: "荧光资讯",
     color: "#C2F54A",
     css: `
-      #wechat-content .lime-body { color:#111111; font-size:16px; line-height:1.82; letter-spacing:.035em; font-family:Optima-Regular,Optima,PingFangSC-light,PingFangTC-light,"PingFang SC",Cambria,Cochin,Georgia,Times,"Times New Roman",serif; }
-      #wechat-content .lime-body h1 { margin:0 0 30px; padding-bottom:24px; border-bottom:1px dashed #3f3f3f; color:#050505; font-size:29px; line-height:1.38; font-weight:800; letter-spacing:-.025em; }
-      #wechat-content .lime-body h2 { margin:34px 0 14px; padding:0 0 7px; display:flex; align-items:center; gap:12px; border-bottom:1px dashed #C2F54A; color:#111111; font-size:19px; line-height:1.45; font-weight:760; }
-      #wechat-content .lime-body h2 .section-number { flex:0 0 auto; padding:5px 8px; background:#C2F54A; color:#111111; font-size:19px; line-height:1.15; font-weight:600; letter-spacing:.02em; }
+      #wechat-content .lime-body { color:#111111; font-size:15px; line-height:1.74; letter-spacing:.035em; font-family:Optima-Regular,Optima,PingFangSC-light,PingFangTC-light,"PingFang SC",Cambria,Cochin,Georgia,Times,"Times New Roman",serif; }
+      #wechat-content .lime-body h1 { margin:0 0 30px; padding-bottom:24px; border-bottom:1px dashed #3f3f3f; color:#050505; font-size:28px; line-height:1.35; font-weight:800; letter-spacing:-.025em; }
+      #wechat-content .lime-body h2 { margin:34px 0 14px; padding:0 0 7px; display:flex; align-items:center; gap:12px; border-bottom:1px dashed #C2F54A; color:#111111; font-size:18px; line-height:1.4; font-weight:760; }
+      #wechat-content .lime-body h2 .section-number { flex:0 0 auto; padding:5px 8px; background:#C2F54A; color:#111111; font-size:18px; line-height:1.15; font-weight:600; letter-spacing:.02em; }
       #wechat-content .lime-body h2 .section-title { padding-right:10px; background:#ffffff; }
-      #wechat-content .lime-body h3 { margin:26px 0 13px; padding:7px 12px; border-left:4px solid #C2F54A; background:linear-gradient(90deg,#f0ffd0 0%,rgba(240,255,208,0) 88%); color:#252c20; font-size:17px; line-height:1.55; font-weight:650; letter-spacing:.04em; }
-      #wechat-content .lime-body p { margin:13px 0; text-align:justify; }
+      #wechat-content .lime-body h3 { margin:26px 0 13px; padding:7px 12px; border-left:4px solid #C2F54A; background:linear-gradient(90deg,#f0ffd0 0%,rgba(240,255,208,0) 88%); color:#252c20; font-size:16px; line-height:1.5; font-weight:650; letter-spacing:.04em; }
+      #wechat-content .lime-body p { margin:12px 0; text-align:justify; }
       #wechat-content .lime-body strong { padding:0 2px; background:linear-gradient(transparent 62%, #C2F54A 62%); color:#080808; font-weight:750; }
-      #wechat-content .lime-body blockquote { margin:26px 0 22px; padding:16px 18px 16px 20px; border:0; border-left:5px solid #C2F54A; border-radius:0 9px 9px 0; background:linear-gradient(90deg,#f2ffd6 0%,#fbfff4 100%); box-shadow:inset 0 0 0 1px #e5f0ce; color:#5f6958; font-size:14px; line-height:1.85; }
+      #wechat-content .lime-body blockquote { margin:26px 0 22px; padding:16px 18px 16px 20px; border:0; border-left:5px solid #C2F54A; border-radius:0 9px 9px 0; background:linear-gradient(90deg,#f2ffd6 0%,#fbfff4 100%); box-shadow:inset 0 0 0 1px #e5f0ce; color:#5f6958; font-size:13px; line-height:1.72; }
       #wechat-content .lime-body blockquote p { margin:0; }
       #wechat-content .lime-body ul, #wechat-content .lime-body ol { margin:15px 0; padding-left:27px; }
       #wechat-content .lime-body ul { list-style-type:disc; }
       #wechat-content .lime-body ol { list-style-type:decimal; }
       #wechat-content .lime-body li { margin:7px 0; }
       #wechat-content .lime-body li::marker { color:#88b51f; font-weight:700; }
-      #wechat-content .lime-body code { padding:2px 6px; border:1px solid #d7efb4; background:#f5ffe7; color:#355d00; font-family:Menlo,Consolas,monospace; font-size:14px; }
-      #wechat-content .lime-body pre { margin:22px 0; padding:18px; overflow:auto; border-left:5px solid #C2F54A; background:#10130d; color:#efffd7; line-height:1.65; }
+      #wechat-content .lime-body code { padding:2px 6px; border:1px solid #d7efb4; background:#f5ffe7; color:#355d00; font-family:Menlo,Consolas,monospace; font-size:13px; }
+      #wechat-content .lime-body pre { margin:22px 0; padding:18px; overflow:auto; border-left:5px solid #C2F54A; background:#10130d; color:#efffd7; line-height:1.58; }
       #wechat-content .lime-body pre code { padding:0; border:0; background:transparent; color:inherit; }
       #wechat-content .lime-body hr { margin:34px 0; height:12px; border:0; border-top:1px dashed #3f3f3f; }
       #wechat-content .lime-body a { color:#587a08; text-decoration:none; border-bottom:1px solid #C2F54A; font-weight:650; }
       #wechat-content .lime-body img { display:block; max-width:100%; height:auto; margin:22px auto 8px; }
-      #wechat-content .lime-body img + em { display:block; margin:0 0 22px; color:#555555; font-size:12px; font-style:normal; }
+      #wechat-content .lime-body img + em { display:block; margin:0 0 22px; color:#555555; font-size:11px; font-style:normal; }
     `,
   },
 };
