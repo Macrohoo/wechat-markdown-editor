@@ -120,15 +120,15 @@ const THEMES: Record<ThemeName, { label: string; color: string; css: string }> =
     label: "荧光资讯",
     color: "#C2F54A",
     css: `
-      #wechat-content .lime-body { color:#111111; font-size:16px; line-height:1.82; letter-spacing:.035em; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+      #wechat-content .lime-body { color:#111111; font-size:16px; line-height:1.82; letter-spacing:.035em; font-family:Optima-Regular,Optima,PingFangSC-light,PingFangTC-light,"PingFang SC",Cambria,Cochin,Georgia,Times,"Times New Roman",serif; }
       #wechat-content .lime-body h1 { margin:0 0 30px; padding-bottom:24px; border-bottom:1px dashed #3f3f3f; color:#050505; font-size:29px; line-height:1.38; font-weight:800; letter-spacing:-.025em; }
       #wechat-content .lime-body h2 { margin:34px 0 14px; padding:0 0 7px; display:flex; align-items:center; gap:12px; border-bottom:1px dashed #C2F54A; color:#111111; font-size:19px; line-height:1.45; font-weight:760; }
       #wechat-content .lime-body h2 .section-number { flex:0 0 auto; padding:5px 8px; background:#C2F54A; color:#111111; font-size:19px; line-height:1.15; font-weight:600; letter-spacing:.02em; }
       #wechat-content .lime-body h2 .section-title { padding-right:10px; background:#ffffff; }
-      #wechat-content .lime-body h3 { margin:27px 0 13px; padding-left:12px; border-left:9px solid #C2F54A; color:#111111; font-size:18px; line-height:1.5; font-weight:750; }
+      #wechat-content .lime-body h3 { margin:26px 0 13px; padding:7px 12px; border-left:4px solid #C2F54A; background:linear-gradient(90deg,#f0ffd0 0%,rgba(240,255,208,0) 88%); color:#252c20; font-size:17px; line-height:1.55; font-weight:650; letter-spacing:.04em; }
       #wechat-content .lime-body p { margin:13px 0; text-align:justify; }
       #wechat-content .lime-body strong { padding:0 2px; background:linear-gradient(transparent 62%, #C2F54A 62%); color:#080808; font-weight:750; }
-      #wechat-content .lime-body blockquote { margin:28px 0 20px; padding:36px 18px 17px; position:relative; border:1px dashed #C2F54A; background:#f8ffe9; color:#18210e; }
+      #wechat-content .lime-body blockquote { margin:28px 0 20px; padding:36px 18px 17px; position:relative; border:1px dashed #C2F54A; background:#f8ffe9; color:#66705d; font-size:14px; line-height:1.8; }
       #wechat-content .lime-body blockquote:before { content:"★"; position:absolute; top:-1px; left:-1px; padding:5px 12px; background:#C2F54A; color:#111111; font-size:15px; line-height:1.4; font-style:normal; font-weight:750; }
       #wechat-content .lime-body blockquote p { margin:0; }
       #wechat-content .lime-body ul, #wechat-content .lime-body ol { margin:15px 0; padding-left:27px; }
