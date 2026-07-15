@@ -1,3 +1,6 @@
+export const SAMPLE_LIME_TITLE = `暗黑料理界又出新品!
+来自日本的“带电”乌冬面(图)`;
+
 export const SAMPLE_MARKDOWN = `今年夏天，雪糕店老板们大概都有一种很割裂的体验。
 
 冰柜一天到晚嗡嗡转着，电表也没闲着。

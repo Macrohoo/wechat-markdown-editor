@@ -1,7 +1,7 @@
 import { marked } from "marked";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BOTTOM_HTML_TEMPLATES, TOP_HTML_TEMPLATES, type HtmlTemplate } from "./html-templates";
-import { SAMPLE_MARKDOWN } from "./sample-markdown";
+import { SAMPLE_LIME_TITLE, SAMPLE_MARKDOWN } from "./sample-markdown";
 
 type ThemeName = "clean" | "editorial" | "tech" | "lime";
 
@@ -195,8 +195,27 @@ function decorateThemeHtml(html: string, theme: ThemeName) {
   return document.body.innerHTML;
 }
 
-function wrapLimeTheme(body: string) {
-  return `<section style="position: static; will-change: transform; box-sizing: border-box;"><section style="margin: 50px 0% 10px; text-align: left; justify-content: flex-start; display: flex; flex-flow: row; will-change: transform; position: static; box-sizing: border-box;"><section style="display: inline-block; width: 100%; vertical-align: top; border-style: solid; border-width: 1px;  border-color: rgba(220, 220, 220, 0.5); padding: 10px; align-self: flex-start; flex: 0 0 auto; box-sizing: border-box;"><section style="position: static; transform: rotateZ(342.56deg); -webkit-transform: rotateZ(342.56deg); -moz-transform: rotateZ(342.56deg); -o-transform: rotateZ(342.56deg); box-sizing: border-box;"><section style="margin: -87px 0% 0px; font-size: 13px; transform: translate3d(-5px, 0px, 0px); -webkit-transform: translate3d(-5px, 0px, 0px); -moz-transform: translate3d(-5px, 0px, 0px); -o-transform: translate3d(-5px, 0px, 0px); position: static; box-sizing: border-box;"><section style="width: 5em; height: 5em; margin: auto; display: inline-block; vertical-align: bottom; text-align: center; border-radius: 100%; box-shadow: rgb(170, 170, 170) 0px 0px 10px; background-color: #C2F54A; box-sizing: border-box;"><section style="display: table; width: 100%; height: 5em; box-sizing: border-box;"><section style="display: table-cell; vertical-align: middle; width: 100%; line-height: 1.1; color: rgb(0, 0, 0); font-size: 32px; padding: 10px; box-sizing: border-box;"><p style="margin: 0px; padding: 0px; box-sizing: border-box;"><b style="box-sizing: border-box;"><span leaf="">事</span></b></p></section></section></section></section></section><section style="margin: 35px 0% 10px; position: static; box-sizing: border-box;"><section style="text-align: center; font-size: 18px; box-sizing: border-box;"><p style="margin: 0px; padding: 0px; box-sizing: border-box;"><strong style="box-sizing: border-box;"><span leaf="">暗黑料理界又出新品!</span></strong></p><p style="margin: 0px; padding: 0px; box-sizing: border-box;"><b style="box-sizing: border-box;"><span leaf="">来自日本的“带电”乌冬面(图)</span></b></p></section></section>${body}</section></section></section>`;
+function renderLimeTitle(title: string) {
+  const document = new DOMParser().parseFromString("", "text/html");
+  return title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+    const paragraph = document.createElement("p");
+    paragraph.setAttribute("style", "margin: 0px; padding: 0px; box-sizing: border-box;");
+    const strong = document.createElement("strong");
+    strong.setAttribute("style", "box-sizing: border-box;");
+    const span = document.createElement("span");
+    span.textContent = line;
+    strong.append(span);
+    paragraph.append(strong);
+    return paragraph.outerHTML;
+  }).join("");
+}
+
+function wrapLimeTheme(body: string, title: string) {
+  const titleHtml = renderLimeTitle(title);
+  const titleSection = titleHtml
+    ? `<section style="margin: 35px 0% 10px; position: static; box-sizing: border-box;"><section style="text-align: center; font-size: 18px; box-sizing: border-box;">${titleHtml}</section></section>`
+    : "";
+  return `<section style="position: static; will-change: transform; box-sizing: border-box;"><section style="margin: 50px 0% 10px; text-align: left; justify-content: flex-start; display: flex; flex-flow: row; will-change: transform; position: static; box-sizing: border-box;"><section style="display: inline-block; width: 100%; vertical-align: top; border-style: solid; border-width: 1px;  border-color: rgba(220, 220, 220, 0.5); padding: 10px; align-self: flex-start; flex: 0 0 auto; box-sizing: border-box;"><section style="position: static; transform: rotateZ(342.56deg); -webkit-transform: rotateZ(342.56deg); -moz-transform: rotateZ(342.56deg); -o-transform: rotateZ(342.56deg); box-sizing: border-box;"><section style="margin: -87px 0% 0px; font-size: 13px; transform: translate3d(-5px, 0px, 0px); -webkit-transform: translate3d(-5px, 0px, 0px); -moz-transform: translate3d(-5px, 0px, 0px); -o-transform: translate3d(-5px, 0px, 0px); position: static; box-sizing: border-box;"><section style="width: 5em; height: 5em; margin: auto; display: inline-block; vertical-align: bottom; text-align: center; border-radius: 100%; box-shadow: rgb(170, 170, 170) 0px 0px 10px; background-color: #C2F54A; box-sizing: border-box;"><section style="display: table; width: 100%; height: 5em; box-sizing: border-box;"><section style="display: table-cell; vertical-align: middle; width: 100%; line-height: 1.1; color: rgb(0, 0, 0); font-size: 32px; padding: 10px; box-sizing: border-box;"><p style="margin: 0px; padding: 0px; box-sizing: border-box;"><b style="box-sizing: border-box;"><span leaf="">事</span></b></p></section></section></section></section></section>${titleSection}${body}</section></section></section>`;
 }
 
 function removeUnsafeWechatAttributes(root: HTMLElement) {
@@ -232,6 +251,7 @@ async function composeContent(
   topHtml: string,
   bottomHtml: string,
   theme: ThemeName,
+  limeTitle: string,
   includeSourceMap = false,
 ) {
   const [safeTopHtml, markdownHtml, safeBottomHtml] = await Promise.all([
@@ -241,13 +261,19 @@ async function composeContent(
   ]);
   const decoratedHtml = decorateThemeHtml(markdownHtml, theme);
   const themedMarkdown = theme === "lime"
-    ? wrapLimeTheme(`<section class="lime-body">${decoratedHtml}</section>`)
+    ? wrapLimeTheme(`<section class="lime-body">${decoratedHtml}</section>`, limeTitle)
     : decoratedHtml;
   return `<section data-content-block="top">${safeTopHtml}</section>${themedMarkdown}<section data-content-block="bottom">${safeBottomHtml}</section>`;
 }
 
-async function buildWechatHtml(markdown: string, topHtml: string, bottomHtml: string, theme: ThemeName) {
-  const safeHtml = await composeContent(markdown, topHtml, bottomHtml, theme);
+async function buildWechatHtml(
+  markdown: string,
+  topHtml: string,
+  bottomHtml: string,
+  theme: ThemeName,
+  limeTitle: string,
+) {
+  const safeHtml = await composeContent(markdown, topHtml, bottomHtml, theme, limeTitle);
   const { default: juice } = await import("juice");
   const inlined = juice(`<style>${THEMES[theme].css}</style><section id="wechat-content">${safeHtml}</section>`, {
     inlinePseudoElements: true,
@@ -401,6 +427,7 @@ function appendHtmlTemplate(currentHtml: string, template: HtmlTemplate) {
 
 export default function Home() {
   const [markdown, setMarkdown] = useState(SAMPLE_MARKDOWN);
+  const [limeTitle, setLimeTitle] = useState(SAMPLE_LIME_TITLE);
   const [topHtml, setTopHtml] = useState("");
   const [bottomHtml, setBottomHtml] = useState("");
   const [theme, setTheme] = useState<ThemeName>("clean");
@@ -496,7 +523,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    composeContent(markdown, topHtml, bottomHtml, theme, true).then((html) => {
+    composeContent(markdown, topHtml, bottomHtml, theme, limeTitle, true).then((html) => {
       if (active) {
         setPreviewHtml(html);
       }
@@ -504,7 +531,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [markdown, topHtml, bottomHtml, theme]);
+  }, [markdown, topHtml, bottomHtml, theme, limeTitle]);
 
   useEffect(() => () => {
     if (previewScrollFrameRef.current !== null) {
@@ -538,6 +565,17 @@ export default function Home() {
       const preview = previewScrollRef.current;
       const textarea = textareaRef.current;
       if (!preview || !textarea || !markdown) return;
+
+      const previewMaxScrollTop = Math.max(0, preview.scrollHeight - preview.clientHeight);
+      const editorMaxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+      if (preview.scrollTop <= 1 || previewMaxScrollTop - preview.scrollTop <= 1) {
+        const targetScrollTop = preview.scrollTop <= 1 ? 0 : editorMaxScrollTop;
+        if (Math.abs(textarea.scrollTop - targetScrollTop) >= 1) {
+          programmaticEditorScrollTopRef.current = targetScrollTop;
+          textarea.scrollTop = targetScrollTop;
+        }
+        return;
+      }
 
       const blocks = preview.querySelectorAll<HTMLElement>("[data-markdown-source-start]");
       if (!blocks.length) return;
@@ -601,6 +639,17 @@ export default function Home() {
       editorScrollFrameRef.current = null;
       const preview = previewScrollRef.current;
       if (!preview || !markdown) return;
+
+      const editorMaxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+      const previewMaxScrollTop = Math.max(0, preview.scrollHeight - preview.clientHeight);
+      if (textarea.scrollTop <= 1 || editorMaxScrollTop - textarea.scrollTop <= 1) {
+        const targetScrollTop = textarea.scrollTop <= 1 ? 0 : previewMaxScrollTop;
+        if (Math.abs(preview.scrollTop - targetScrollTop) >= 1) {
+          programmaticPreviewScrollTopRef.current = targetScrollTop;
+          preview.scrollTop = targetScrollTop;
+        }
+        return;
+      }
 
       const blockElements = [...preview.querySelectorAll<HTMLElement>("[data-markdown-source-start]")];
       const sourceRanges = blockElements.map((block) => ({
@@ -668,7 +717,7 @@ export default function Home() {
   const copyToWechat = useCallback(async () => {
     setBusy(true);
     setStatus("正在整理样式…");
-    const contentPromise = buildWechatHtml(markdown, topHtml, bottomHtml, theme);
+    const contentPromise = buildWechatHtml(markdown, topHtml, bottomHtml, theme, limeTitle);
 
     try {
       if (window.isSecureContext && navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
@@ -705,7 +754,7 @@ export default function Home() {
       setBusy(false);
       window.setTimeout(() => setStatus("复制到公众号"), 3200);
     }
-  }, [markdown, topHtml, bottomHtml, theme]);
+  }, [markdown, topHtml, bottomHtml, theme, limeTitle]);
 
   return (
     <main className="app-shell">
@@ -746,7 +795,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="editor-column">
-          <article className="pane html-pane">
+          <article className="pane html-pane before-pane">
             <div className="html-pane-heading">
               <div><span className="eyebrow">BEFORE</span><h2>顶部 HTML</h2></div>
               <div className="html-pane-actions">
@@ -774,10 +823,27 @@ export default function Home() {
             />
           </article>
 
+          {theme === "lime" && (
+            <article className="pane html-pane title-pane">
+              <div className="html-pane-heading">
+                <div><span className="eyebrow">TITLE</span><h2>荧光资讯标题</h2></div>
+                <span>每行渲染为一个段落</span>
+              </div>
+              <textarea
+                id="lime-title"
+                aria-label="荧光资讯标题编辑区"
+                value={limeTitle}
+                onChange={(event) => setLimeTitle(event.target.value)}
+                placeholder={'第一行标题\n第二行标题'}
+                spellCheck={false}
+              />
+            </article>
+          )}
+
           <article className="pane editor-pane">
             <div className="pane-heading">
               <div><span className="eyebrow">WRITE</span><h2>Markdown 正文</h2></div>
-              <button className="quiet-button" onClick={() => { setTopHtml(""); setMarkdown(""); setBottomHtml(""); }}>全部清空</button>
+              <button className="quiet-button" onClick={() => { setTopHtml(""); setLimeTitle(""); setMarkdown(""); setBottomHtml(""); }}>全部清空</button>
             </div>
             <div className="markdown-toolbar" role="toolbar" aria-label="Markdown 快捷格式">
               {MARKDOWN_TOOLS.map((tool) => (
