@@ -306,9 +306,7 @@ function fallbackRichCopy(html: string, plainText: string) {
   return succeeded && wroteRichHtml;
 }
 
-function getTextareaSourceOffsetTop(textarea: HTMLTextAreaElement, value: string, offset: number) {
-  // Mirror the textarea's wrapping rules to locate a source offset in pixels.
-  // Counting lines alone drifts when long Markdown lines wrap visually.
+function createTextareaMirror(textarea: HTMLTextAreaElement) {
   const computed = window.getComputedStyle(textarea);
   const mirror = document.createElement("div");
   Object.assign(mirror.style, {
@@ -334,6 +332,14 @@ function getTextareaSourceOffsetTop(textarea: HTMLTextAreaElement, value: string
     lineHeight: computed.lineHeight,
   });
 
+  return mirror;
+}
+
+function getTextareaSourceOffsetTop(textarea: HTMLTextAreaElement, value: string, offset: number) {
+  // Mirror the textarea's wrapping rules to locate a source offset in pixels.
+  // Counting lines alone drifts when long Markdown lines wrap visually.
+  const mirror = createTextareaMirror(textarea);
+
   mirror.append(document.createTextNode(value.slice(0, offset)));
   const marker = document.createElement("span");
   marker.textContent = "\u200b";
@@ -342,6 +348,51 @@ function getTextareaSourceOffsetTop(textarea: HTMLTextAreaElement, value: string
   const markerCenter = marker.offsetTop + marker.offsetHeight / 2;
   mirror.remove();
   return markerCenter;
+}
+
+type SourceRange = {
+  start: number;
+  end: number;
+};
+
+type MeasuredSourceRange = SourceRange & {
+  top: number;
+  bottom: number;
+};
+
+function measureTextareaSourceRanges(
+  textarea: HTMLTextAreaElement,
+  value: string,
+  ranges: SourceRange[],
+) {
+  const offsets = [...new Set(ranges.flatMap(({ start, end }) => [start, end]))].sort((a, b) => a - b);
+  const mirror = createTextareaMirror(textarea);
+  const markers = new Map<number, HTMLSpanElement>();
+  let cursor = 0;
+
+  offsets.forEach((offset) => {
+    mirror.append(document.createTextNode(value.slice(cursor, offset)));
+    const marker = document.createElement("span");
+    marker.textContent = "\u200b";
+    markers.set(offset, marker);
+    mirror.append(marker);
+    cursor = offset;
+  });
+  mirror.append(document.createTextNode(value.slice(cursor)));
+  document.body.append(mirror);
+
+  const positions = new Map<number, number>();
+  markers.forEach((marker, offset) => {
+    positions.set(offset, marker.offsetTop + marker.offsetHeight / 2);
+  });
+  mirror.remove();
+
+  return ranges.map(({ start, end }) => ({
+    start,
+    end,
+    top: positions.get(start) ?? 0,
+    bottom: positions.get(end) ?? positions.get(start) ?? 0,
+  }));
 }
 
 function appendHtmlTemplate(currentHtml: string, template: HtmlTemplate) {
@@ -359,6 +410,14 @@ export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
   const previewScrollFrameRef = useRef<number | null>(null);
+  const editorScrollFrameRef = useRef<number | null>(null);
+  const programmaticEditorScrollTopRef = useRef<number | null>(null);
+  const programmaticPreviewScrollTopRef = useRef<number | null>(null);
+  const editorSourceMapCacheRef = useRef<{
+    markdown: string;
+    width: number;
+    ranges: MeasuredSourceRange[];
+  } | null>(null);
 
   const characters = markdown.replace(/\s/g, "").length;
 
@@ -451,9 +510,25 @@ export default function Home() {
     if (previewScrollFrameRef.current !== null) {
       window.cancelAnimationFrame(previewScrollFrameRef.current);
     }
+    if (editorScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(editorScrollFrameRef.current);
+    }
   }, []);
 
-  const syncEditorToPreview = useCallback(() => {
+  const syncPreviewToEditor = useCallback(() => {
+    const preview = previewScrollRef.current;
+    if (!preview) return;
+
+    if (programmaticPreviewScrollTopRef.current !== null) {
+      const target = programmaticPreviewScrollTopRef.current;
+      programmaticPreviewScrollTopRef.current = null;
+      if (Math.abs(preview.scrollTop - target) < 2) return;
+    }
+
+    if (editorScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(editorScrollFrameRef.current);
+      editorScrollFrameRef.current = null;
+    }
     if (previewScrollFrameRef.current !== null) {
       window.cancelAnimationFrame(previewScrollFrameRef.current);
     }
@@ -496,7 +571,97 @@ export default function Home() {
       const sourceOffset = Math.round(start + (end - start) * progress);
       const sourceCenter = getTextareaSourceOffsetTop(textarea, markdown, sourceOffset);
       const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
-      textarea.scrollTop = Math.min(maxScrollTop, Math.max(0, sourceCenter - textarea.clientHeight / 2));
+      const targetScrollTop = Math.min(maxScrollTop, Math.max(0, sourceCenter - textarea.clientHeight / 2));
+      if (Math.abs(textarea.scrollTop - targetScrollTop) >= 1) {
+        programmaticEditorScrollTopRef.current = targetScrollTop;
+        textarea.scrollTop = targetScrollTop;
+      }
+    });
+  }, [markdown]);
+
+  const syncEditorToPreview = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    if (programmaticEditorScrollTopRef.current !== null) {
+      const target = programmaticEditorScrollTopRef.current;
+      programmaticEditorScrollTopRef.current = null;
+      if (Math.abs(textarea.scrollTop - target) < 2) return;
+    }
+
+    if (previewScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(previewScrollFrameRef.current);
+      previewScrollFrameRef.current = null;
+    }
+    if (editorScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(editorScrollFrameRef.current);
+    }
+
+    editorScrollFrameRef.current = window.requestAnimationFrame(() => {
+      editorScrollFrameRef.current = null;
+      const preview = previewScrollRef.current;
+      if (!preview || !markdown) return;
+
+      const blockElements = [...preview.querySelectorAll<HTMLElement>("[data-markdown-source-start]")];
+      const sourceRanges = blockElements.map((block) => ({
+        start: Number(block.dataset.markdownSourceStart),
+        end: Number(block.dataset.markdownSourceEnd),
+      })).filter(({ start, end }) => Number.isFinite(start) && Number.isFinite(end));
+      if (!sourceRanges.length || sourceRanges.length !== blockElements.length) return;
+
+      let measuredRanges = editorSourceMapCacheRef.current?.ranges;
+      if (
+        !measuredRanges
+        || editorSourceMapCacheRef.current?.markdown !== markdown
+        || editorSourceMapCacheRef.current.width !== textarea.clientWidth
+        || measuredRanges.length !== sourceRanges.length
+      ) {
+        measuredRanges = measureTextareaSourceRanges(textarea, markdown, sourceRanges);
+        editorSourceMapCacheRef.current = {
+          markdown,
+          width: textarea.clientWidth,
+          ranges: measuredRanges,
+        };
+      }
+
+      const editorCenter = textarea.scrollTop + textarea.clientHeight / 2;
+      let closestIndex = 0;
+      let closestDistance = Number.POSITIVE_INFINITY;
+      measuredRanges.forEach((range, index) => {
+        const top = Math.min(range.top, range.bottom);
+        const bottom = Math.max(range.top, range.bottom);
+        const distance = editorCenter < top
+          ? top - editorCenter
+          : editorCenter > bottom
+            ? editorCenter - bottom
+            : 0;
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+
+      const measuredRange = measuredRanges[closestIndex];
+      const sourceRange = sourceRanges[closestIndex];
+      const sourceHeight = Math.max(1, measuredRange.bottom - measuredRange.top);
+      const sourceProgress = Math.min(1, Math.max(0, (editorCenter - measuredRange.top) / sourceHeight));
+      const sourceOffset = sourceRange.start + (sourceRange.end - sourceRange.start) * sourceProgress;
+      const previewIndex = sourceRanges.findIndex(({ start, end }) => sourceOffset >= start && sourceOffset <= end);
+      const targetIndex = previewIndex >= 0 ? previewIndex : closestIndex;
+      const targetRange = sourceRanges[targetIndex];
+      const targetBlock = blockElements[targetIndex];
+      const blockProgress = Math.min(1, Math.max(0, (sourceOffset - targetRange.start) / Math.max(1, targetRange.end - targetRange.start)));
+      const previewRect = preview.getBoundingClientRect();
+      const blockRect = targetBlock.getBoundingClientRect();
+      const blockTop = blockRect.top - previewRect.top + preview.scrollTop;
+      const targetCenter = blockTop + blockRect.height * blockProgress;
+      const maxScrollTop = Math.max(0, preview.scrollHeight - preview.clientHeight);
+      const targetScrollTop = Math.min(maxScrollTop, Math.max(0, targetCenter - preview.clientHeight / 2));
+
+      if (Math.abs(preview.scrollTop - targetScrollTop) >= 1) {
+        programmaticPreviewScrollTopRef.current = targetScrollTop;
+        preview.scrollTop = targetScrollTop;
+      }
     });
   }, [markdown]);
 
@@ -635,6 +800,7 @@ export default function Home() {
               aria-label="Markdown 编辑区"
               value={markdown}
               onChange={(event) => setMarkdown(event.target.value)}
+              onScroll={syncEditorToPreview}
               spellCheck={false}
             />
           </article>
@@ -673,7 +839,7 @@ export default function Home() {
             <div><span className="eyebrow">PREVIEW</span><h2>公众号预览</h2></div>
             <span className="phone-width">375 px · 滚动联动</span>
           </div>
-          <div ref={previewScrollRef} className="preview-scroll" onScroll={syncEditorToPreview}>
+          <div ref={previewScrollRef} className="preview-scroll" onScroll={syncPreviewToEditor}>
             <div className="phone-paper">
               <style>{THEMES[theme].css}</style>
               <section id="wechat-content" dangerouslySetInnerHTML={{ __html: previewHtml }} />
